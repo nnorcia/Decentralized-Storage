@@ -1,0 +1,74 @@
+import asyncio
+import rpcudp
+from kademlia.network import Server
+import ipfshttpclient
+
+#Kamdelia Server Instance Created
+
+server = Server()
+loop = asyncio.get_event_loop()
+
+
+#Intialize the server and start listening for connections
+
+async def run_server():
+	await server.listen(8470)
+	await server.bootstrap([('local-host', 8470)])
+	print(f"Server listening on port 8470")
+	while True:
+		await asyncio.sleep(1)
+
+asyncio.ensure_future(run_server())
+
+#function to add data to network.  Will take a key and value as params and store data in the above Kamdelia server
+
+async def add_data_to_network(key, value):
+	await asyncio.sleep(1)                   #wait for server to start listening
+	await server.set(key, value)
+
+#Retrieve data from the netork.  Will take in key and return the value stored in the server.
+
+async def get_data_from_network(key):
+	result = await server.get(key)
+	return result
+
+#Connect to IPFS node and upload file to the IPFS network
+
+def upload_file_to_ipfs(file_path):
+	api = ipfshttpclient.connect()
+	res = api.add(file_path)
+	return res['Hash']
+
+#Same but download this time
+
+def download_file_from_ipfs(file_hash):
+	api = ipfshttpclient.connect()
+	file_contents = api.cat(file_hash)
+	return file_contents
+
+#if statement with loop to keep checking server until connected then close loop
+if __name__ == '__main__':
+	loop.create_task(run_server())
+	loop.run_until_complete(add_data_to_network('my_key', 'my value'))
+	result = loop.run_until_complete(get_data_from_network('my_key'))
+	print(result)
+
+
+loop.close()
+
+	
+
+
+
+
+#
+
+
+####################################################################
+
+#Test Cases
+
+asyncio.run(add_data_to_network('1', 'Let us see if this works'))
+
+result = asyncio.run(get_data_from_network('1'))
+print(result)
